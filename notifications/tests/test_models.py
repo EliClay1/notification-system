@@ -33,6 +33,37 @@ class NotificationModelTests(TestCase):
         self.assertFalse(notification.is_read)
         self.assertIsInstance(notification.created_at, datetime)
 
+    @pytest.mark.django_db
+    def test_notification_relationships(self):
+        new_user = User.objects.create_user(username="user1")
+
+        for i in range(10):
+            NotificationModel.objects.create(
+                recipient=new_user, type=type, message=f"message #{i}"
+            )
+
+        new_user2 = User.objects.create_user(username="user2")
+        NotificationModel.objects.create(recipient=new_user2, type=type, message="test")
+
+        # base assumptions
+        self.assertEqual(
+            NotificationModel.objects.filter(recipient=new_user).count(), 10
+        )
+        self.assertEqual(
+            NotificationModel.objects.filter(recipient=new_user2).count(), 1
+        )
+
+        # Cascade check
+        user_id = new_user.pk
+        new_user.delete()
+        self.assertFalse(
+            NotificationModel.objects.filter(recipient_id=user_id).exists()
+        )
+        self.assertEqual(
+            NotificationModel.objects.filter(recipient=new_user2).count(), 1
+        )
+
+    @pytest.mark.django_db
     def test_notification_order(self):
 
         notifications = {
@@ -53,7 +84,11 @@ class NotificationModelTests(TestCase):
             )
             notification.save()
 
-        sorted_notifications = NotificationModel.objects.order_by("created_at")
-        all_notifications = NotificationModel.objects.all()
-
-        self.assertEqual(sorted_notifications, all_notifications)
+        self.assertEqual(
+            list(NotificationModel.objects.values_list("pk", flat=True)),
+            list(
+                NotificationModel.objects.order_by("created_at").values_list(
+                    "pk", flat=True
+                )
+            ),
+        )
