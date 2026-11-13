@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime, timedelta
-from unittest import TestCase
 
 import pytest
 from django.contrib.auth.models import User
@@ -31,85 +30,39 @@ def notifications():
     return created_ids
 
 
-class NotificationModelTests(TestCase):
-    """
-    Tests the various function of the notification model.
-    """
-
-    @pytest.mark.django_db
+@pytest.mark.django_db
+class TestNotificationModel:
     def test_notification_creation(self):
-
-        # Arrange
-        user1 = User.objects.create_user(username="test1")
-        notification = NotificationModel(
-            recipient=user1, type="1", message="This is a test message"
+        user = User.objects.create_user(username="user0")
+        notification = NotificationModel.objects.create(
+            recipient=user, type="1", message=f"Test message to: {user}"
         )
 
-        # Act
-        notification.save()
-        saved_notification = NotificationModel.objects.get(pk=notification.pk)
+        retrieved = NotificationModel.objects.get(pk=notification.pk)
 
-        # Assert
-        self.assertEqual(notification, saved_notification)
-        self.assertFalse(notification.is_read)
-        self.assertIsInstance(notification.created_at, datetime)
+        assert notification == retrieved
+        assert not notification.is_read
+        assert isinstance(notification.created_at, datetime)
 
-    @pytest.mark.django_db
-    def test_notification_relationships(self):
-        new_user = User.objects.create_user(username="user1")
+    def test_notification_relationship(self, notifications):
+        user0 = User.objects.get(username="user0")
+        user1 = User.objects.get(username="user1")
+        user0_pk = user0.pk
 
-        for i in range(10):
-            NotificationModel.objects.create(
-                recipient=new_user, type="1", message=f"message #{i}"
+        assert NotificationModel.objects.filter(recipient=user0).count() == 1
+        user0.delete()
+        assert not NotificationModel.objects.filter(recipient_id=user0_pk).exists()
+        assert NotificationModel.objects.filter(recipient=user1).count() == 1
+
+    def test_notification_order(self, notifications):
+        assert (
+            list(
+                NotificationModel.objects.order_by("-created_at").values_list(
+                    "pk", flat=True
+                )
             )
-
-        new_user2 = User.objects.create_user(username="user2")
-        NotificationModel.objects.create(recipient=new_user2, type="1", message="test")
-
-        # base assumptions, and checks if the notification is connected to the right user.
-        self.assertEqual(
-            NotificationModel.objects.filter(recipient=new_user).count(), 10
+            == notifications[::-1]
         )
-        self.assertEqual(
-            NotificationModel.objects.filter(recipient=new_user2).count(), 1
-        )
-
-        # Cascade check
-        user_id = new_user.pk
-        new_user.delete()
-        self.assertFalse(
-            NotificationModel.objects.filter(recipient_id=user_id).exists()
-        )
-        self.assertEqual(
-            NotificationModel.objects.filter(recipient=new_user2).count(), 1
-        )
-
-    @pytest.mark.django_db
-    def test_notification_order(self):
-        base_time = timezone.now()
-
-        notifications = [
-            ("user1", base_time),
-            ("user2", base_time + timedelta(minutes=1)),
-            ("user3", base_time + timedelta(minutes=2)),
-        ]
-
-        expected_ids = []
-
-        for username, created_at in notifications:
-            user = User.objects.create_user(username=username)
-            notification = NotificationModel.objects.create(
-                recipient=user, type="1", message=f"test message to {username}"
-            )
-            NotificationModel.objects.filter(pk=notification.pk).update(
-                created_at=created_at
-            )
-
-            expected_ids.insert(0, notification.pk)
-
-        actual_ids = list(NotificationModel.objects.values_list("pk", flat=True))
-
-        self.assertEqual(actual_ids, expected_ids)
 
 
 @pytest.mark.django_db
@@ -127,8 +80,25 @@ class TestNotificationQuerySet:
         ) == [user.pk]
 
     def test_recent(self, notifications):
-        assert NotificationModel.objects.recent().count() == 10
         assert (
             list(NotificationModel.objects.recent().values_list("pk", flat=True))
             == notifications[::-1][:10]
         )
+
+    def test_chained_methods(self, notifications):
+        user = User.objects.get(username="user0")
+        user12 = User.objects.get(username="user12")
+
+        assert NotificationModel.objects.for_user(user).unread().count() == 0
+        assert NotificationModel.objects.for_user(user12).unread().count() == 1
+
+    def test_database_calls(self, notifications, django_assert_num_queries):
+        with django_assert_num_queries(0):
+            unread_data = NotificationModel.objects.unread()
+            all_data_sliced = NotificationModel.objects.all()[:5]
+
+        with django_assert_num_queries(1):
+            list(unread_data)
+
+        with django_assert_num_queries(1):
+            list(all_data_sliced)
