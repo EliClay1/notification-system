@@ -1,0 +1,2 @@
+# Notification System
+Notification System is an experimental project where I am working with an AI agent to better understand how to build Django projects. The system prompt can be found [here](./PROMPT.md). I will also upload logs of chat records and summaries of chats to a separate folder for any use or analysis anyone might need.
