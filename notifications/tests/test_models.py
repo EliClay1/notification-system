@@ -56,11 +56,7 @@ class TestNotificationModel:
 
     def test_notification_order(self, notifications):
         assert (
-            list(
-                NotificationModel.objects.order_by("-created_at").values_list(
-                    "pk", flat=True
-                )
-            )
+            list(NotificationModel.objects.all().values_list("pk", flat=True))
             == notifications[::-1]
         )
 

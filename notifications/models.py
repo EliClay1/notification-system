@@ -15,7 +15,6 @@ class NotificationQuerySet(models.QuerySet):
 
     def recent(self):
         """Returns the 10 most recent notifications"""
-        # order_by is not required here, as it automatically returns by the 10 most recent.
         return self.order_by("-created_at", "-pk")[:10]
 
 
