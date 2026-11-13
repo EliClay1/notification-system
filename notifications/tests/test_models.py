@@ -45,7 +45,7 @@ class NotificationModelTests(TestCase):
         new_user2 = User.objects.create_user(username="user2")
         NotificationModel.objects.create(recipient=new_user2, type=type, message="test")
 
-        # base assumptions
+        # base assumptions, and checks if the notification is connected to the right user.
         self.assertEqual(
             NotificationModel.objects.filter(recipient=new_user).count(), 10
         )
