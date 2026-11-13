@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.db import models
-from django.utils import timezone
 
 
 class NotificationModel(models.Model):
@@ -16,11 +15,11 @@ class NotificationModel(models.Model):
         choices=NotificationType.choices, default=NotificationType.NORMAL
     )
     message = models.CharField(max_length=500)
-    created_at = models.DateField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
 
     class Meta:
-        ordering = ["created_at"]  # noqa: RUF012
+        ordering = ["-created_at"]  # noqa: RUF012
 
     def __str__(self) -> str:
         return f"{self.recipient.username}: {self.message}"

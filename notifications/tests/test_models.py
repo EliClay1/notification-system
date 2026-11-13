@@ -1,9 +1,10 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
+from unittest import TestCase
 
 import pytest
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.utils import timezone
 
 from notifications.models import NotificationModel
 
@@ -39,11 +40,11 @@ class NotificationModelTests(TestCase):
 
         for i in range(10):
             NotificationModel.objects.create(
-                recipient=new_user, type=type, message=f"message #{i}"
+                recipient=new_user, type="1", message=f"message #{i}"
             )
 
         new_user2 = User.objects.create_user(username="user2")
-        NotificationModel.objects.create(recipient=new_user2, type=type, message="test")
+        NotificationModel.objects.create(recipient=new_user2, type="1", message="test")
 
         # base assumptions, and checks if the notification is connected to the right user.
         self.assertEqual(
@@ -65,30 +66,27 @@ class NotificationModelTests(TestCase):
 
     @pytest.mark.django_db
     def test_notification_order(self):
+        base_time = timezone.now()
 
-        notifications = {
-            "user2": {"type": "1", "message": "test message to user2"},
-            "user1": {"type": "1", "message": "test message to user1"},
-            "user3": {"type": "1", "message": "test message to user3"},
-            "user4": {"type": "1", "message": "test message to user4"},
-            "user5": {"type": "1", "message": "test message to user5"},
-        }
+        notifications = [
+            ("user1", base_time),
+            ("user2", base_time + timedelta(minutes=1)),
+            ("user3", base_time + timedelta(minutes=2)),
+        ]
 
-        for user, data in notifications.items():
-            type = data["type"]
-            message = data["message"]
+        expected_ids = []
 
-            new_user = User.objects.create_user(username=user)
-            notification = NotificationModel(
-                recipient=new_user, type=type, message=message
+        for username, created_at in notifications:
+            user = User.objects.create_user(username=username)
+            notification = NotificationModel.objects.create(
+                recipient=user, type="1", message=f"test message to {username}"
             )
-            notification.save()
+            NotificationModel.objects.filter(pk=notification.pk).update(
+                created_at=created_at
+            )
 
-        self.assertEqual(
-            list(NotificationModel.objects.values_list("pk", flat=True)),
-            list(
-                NotificationModel.objects.order_by("created_at").values_list(
-                    "pk", flat=True
-                )
-            ),
-        )
+            expected_ids.insert(0, notification.pk)
+
+        actual_ids = list(NotificationModel.objects.values_list("pk", flat=True))
+
+        self.assertEqual(actual_ids, expected_ids)
