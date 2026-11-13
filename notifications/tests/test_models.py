@@ -11,6 +11,26 @@ from notifications.models import NotificationModel
 logger = logging.getLogger(__name__)
 
 
+@pytest.fixture
+def notifications():
+    base_time = timezone.now()
+    created_ids = []
+
+    for i in range(15):
+        user = User.objects.create_user(username=f"user{i}")
+        notification = NotificationModel.objects.create(
+            recipient=user, type="1", message=f"Test message to: {user}"
+        )
+
+        NotificationModel.objects.filter(pk=notification.pk).update(
+            created_at=base_time + timedelta(minutes=i), is_read=i <= 10
+        )
+
+        created_ids.append(notification.pk)
+
+    return created_ids
+
+
 class NotificationModelTests(TestCase):
     """
     Tests the various function of the notification model.
@@ -90,3 +110,25 @@ class NotificationModelTests(TestCase):
         actual_ids = list(NotificationModel.objects.values_list("pk", flat=True))
 
         self.assertEqual(actual_ids, expected_ids)
+
+
+@pytest.mark.django_db
+class TestNotificationQuerySet:
+    def test_unread(self, notifications):
+        assert NotificationModel.objects.unread().count() == 4
+
+    def test_for_user(self, notifications):
+        user = User.objects.get(username="user0")
+
+        assert list(
+            NotificationModel.objects.for_user(user).values_list(
+                "recipient_id", flat=True
+            )
+        ) == [user.pk]
+
+    def test_recent(self, notifications):
+        assert NotificationModel.objects.recent().count() == 10
+        assert (
+            list(NotificationModel.objects.recent().values_list("pk", flat=True))
+            == notifications[::-1][:10]
+        )
