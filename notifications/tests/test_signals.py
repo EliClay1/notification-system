@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.mark.django_db
-class TestNotificationModel:
+class TestNotificationSignals:
     def test_user_creation_signal(self):
         user = User.objects.create(username="user0")
         # by this point, the signal should have activated.
