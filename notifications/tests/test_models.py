@@ -43,6 +43,32 @@ def notifications():
     return created_ids
 
 
+@pytest.fixture
+def notifications_100():
+    """Creates 10 notifications per user for 10 users."""
+    base_time = timezone.now()
+    created_ids = []
+    users = []
+
+    for i in range(10):
+        user = User.objects.create_user(username=f"user{i}")
+        users.append(user)
+
+    for i in range(100):
+        id = i % 10
+        notification = NotificationModel.objects.create(
+            recipient=users[id], type="1", message=f"Test message to: {users[id]}"
+        )
+
+        NotificationModel.objects.filter(pk=notification.pk).update(
+            created_at=base_time + timedelta(minutes=id), is_read=id <= 5
+        )
+
+        created_ids.append(notification.pk)
+
+    return created_ids
+
+
 @pytest.mark.django_db
 class TestNotificationModel:
     def test_notification_creation(self):
@@ -111,3 +137,41 @@ class TestNotificationQuerySet:
 
         with django_assert_num_queries(1):
             list(all_data_sliced)
+
+
+@pytest.mark.django_db
+class TestDatabaseOptimizations:
+    def test_no_relation_optimization(
+        self, notifications_100, django_assert_num_queries
+    ):
+        with django_assert_num_queries(101):
+            notifications = NotificationModel.objects.all()
+            for notification in notifications:
+                print(notification.recipient.username)
+
+    def test_select_related(self, notifications_100, django_assert_num_queries):
+        with django_assert_num_queries(1):
+            notifications = NotificationModel.objects.select_related("recipient")
+            for notification in notifications:
+                print(notification.recipient.username)
+
+    def test_prefetch_related(self, notifications_100, django_assert_num_queries):
+        with django_assert_num_queries(2):
+            notifications = NotificationModel.objects.prefetch_related("recipient")
+            for notification in notifications:
+                print(notification.recipient.username)
+
+    def test_same_return_data(self, notifications_100):
+        unoptimized = list(NotificationModel.objects.order_by("pk"))
+        optimized = list(
+            NotificationModel.objects.select_related("recipient").order_by("pk")
+        )
+
+        assert unoptimized == optimized
+
+        unoptimized_data = [
+            (n.pk, n.message, n.recipient.username) for n in unoptimized
+        ]
+        optimized_data = [(n.pk, n.message, n.recipient.username) for n in optimized]
+
+        assert unoptimized_data == optimized_data
