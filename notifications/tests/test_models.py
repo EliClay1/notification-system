@@ -3,11 +3,32 @@ from datetime import datetime, timedelta
 
 import pytest
 from django.contrib.auth.models import User
+from django.db.models import signals
 from django.utils import timezone
 
 from notifications.models import NotificationModel
+from notifications.signals import on_user_creation
 
 logger = logging.getLogger(__name__)
+
+signals.post_save.disconnect(sender=User, dispatch_uid="post-save-uid123")
+
+
+@pytest.fixture(autouse=True)
+def disconnect_user_signal():
+    signals.post_save.disconnect(
+        receiver=on_user_creation,
+        sender=User,
+        dispatch_uid="post-save-uid123",
+    )
+
+    yield
+
+    signals.post_save.connect(
+        receiver=on_user_creation,
+        sender=User,
+        dispatch_uid="post-save-uid123",
+    )
 
 
 @pytest.fixture
@@ -70,6 +91,7 @@ def notifications_100():
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("disconnect_user_signal")
 class TestNotificationModel:
     def test_notification_creation(self):
         user = User.objects.create_user(username="user0")
@@ -101,6 +123,7 @@ class TestNotificationModel:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("disconnect_user_signal")
 class TestNotificationQuerySet:
     def test_unread(self, notifications):
         assert NotificationModel.objects.unread().count() == 4
@@ -140,6 +163,7 @@ class TestNotificationQuerySet:
 
 
 @pytest.mark.django_db
+@pytest.mark.usefixtures("disconnect_user_signal")
 class TestDatabaseOptimizations:
     def test_no_relation_optimization(
         self, notifications_100, django_assert_num_queries
@@ -175,15 +199,3 @@ class TestDatabaseOptimizations:
         optimized_data = [(n.pk, n.message, n.recipient.username) for n in optimized]
 
         assert unoptimized_data == optimized_data
-
-
-@pytest.mark.django_db
-class TestIndexes:
-    def test_explain(self, notifications_100):
-        notifications = NotificationModel.objects.select_related("recipient")
-        logger.info(notifications.sql_execution())
-
-        user = User.objects.get(username="user8")
-        logger.info(
-            NotificationModel.objects.for_user(user).unread().recent().sql_execution()
-        )
