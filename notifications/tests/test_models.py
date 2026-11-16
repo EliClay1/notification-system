@@ -27,6 +27,19 @@ def notifications():
 
         created_ids.append(notification.pk)
 
+    # Create 5 additional notifications specificially for user0
+    user0 = User.objects.get(username="user0")
+    for i in range(5):
+        notification = NotificationModel.objects.create(
+            recipient=user0, type="1", message=f"Test message to: {user0}"
+        )
+
+        NotificationModel.objects.filter(pk=notification.pk).update(
+            created_at=base_time + timedelta(minutes=i + 15), is_read=i <= 10
+        )
+
+        created_ids.append(notification.pk)
+
     return created_ids
 
 
@@ -49,7 +62,7 @@ class TestNotificationModel:
         user1 = User.objects.get(username="user1")
         user0_pk = user0.pk
 
-        assert NotificationModel.objects.filter(recipient=user0).count() == 1
+        assert NotificationModel.objects.filter(recipient=user0).count() == 6
         user0.delete()
         assert not NotificationModel.objects.filter(recipient_id=user0_pk).exists()
         assert NotificationModel.objects.filter(recipient=user1).count() == 1
@@ -73,7 +86,7 @@ class TestNotificationQuerySet:
             NotificationModel.objects.for_user(user).values_list(
                 "recipient_id", flat=True
             )
-        ) == [user.pk]
+        ) == [user.pk for _i in range(6)]
 
     def test_recent(self, notifications):
         assert (
