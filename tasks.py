@@ -33,7 +33,7 @@ def shell(c):
     """
     Runs ./manage.py shell_plus.
     """
-    os.execvp(sys.executable, [sys.executable, "manage.py", "shell_plus"])
+    os.execvp(sys.executable, [sys.executable, "manage.py", "shell"])
 
 
 ns = Collection()

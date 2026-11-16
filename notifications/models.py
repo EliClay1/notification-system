@@ -17,6 +17,10 @@ class NotificationQuerySet(models.QuerySet):
         """Returns the 10 most recent notifications"""
         return self.order_by("-created_at", "-pk")[:10]
 
+    def sql_execution(self):
+        """outputs the execution strategy of the SQL"""
+        return self.explain()
+
 
 class NotificationModel(models.Model):
     class NotificationType(models.TextChoices):
@@ -39,6 +43,7 @@ class NotificationModel(models.Model):
 
     class Meta:
         ordering = ["-created_at"]  # noqa: RUF012
+        indexes = [models.Index(fields=["recipient", "is_read", "-created_at", "-id"])]  # noqa: RUF012
 
     def __str__(self) -> str:
         return f"{self.recipient.username}: {self.message}"

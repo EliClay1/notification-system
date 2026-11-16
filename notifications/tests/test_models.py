@@ -175,3 +175,15 @@ class TestDatabaseOptimizations:
         optimized_data = [(n.pk, n.message, n.recipient.username) for n in optimized]
 
         assert unoptimized_data == optimized_data
+
+
+@pytest.mark.django_db
+class TestIndexes:
+    def test_explain(self, notifications_100):
+        notifications = NotificationModel.objects.select_related("recipient")
+        logger.info(notifications.sql_execution())
+
+        user = User.objects.get(username="user8")
+        logger.info(
+            NotificationModel.objects.for_user(user).unread().recent().sql_execution()
+        )
