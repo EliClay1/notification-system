@@ -19,7 +19,6 @@ def disconnect_user_signal():
     signals.post_save.disconnect(
         receiver=on_user_creation,
         sender=User,
-        dispatch_uid="post-save-uid123",
     )
 
     yield
@@ -27,7 +26,6 @@ def disconnect_user_signal():
     signals.post_save.connect(
         receiver=on_user_creation,
         sender=User,
-        dispatch_uid="post-save-uid123",
     )
 
 
