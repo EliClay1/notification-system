@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [tool.pytest]
-markers = ["keep_user_signal"]
+markers = ["keep_user_signal", "disable_user_signal"]
 log_cli_level = "INFO"
 log_cli_format = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 
