@@ -3,30 +3,11 @@ from datetime import datetime, timedelta
 
 import pytest
 from django.contrib.auth.models import User
-from django.db.models import signals
 from django.utils import timezone
 
 from notifications.models import NotificationModel
-from notifications.signals import on_user_creation
 
 logger = logging.getLogger(__name__)
-
-signals.post_save.disconnect(sender=User, dispatch_uid="post-save-uid123")
-
-
-@pytest.fixture(autouse=True)
-def disconnect_user_signal():
-    signals.post_save.disconnect(
-        receiver=on_user_creation,
-        sender=User,
-    )
-
-    yield
-
-    signals.post_save.connect(
-        receiver=on_user_creation,
-        sender=User,
-    )
 
 
 @pytest.fixture
@@ -89,7 +70,6 @@ def notifications_100():
 
 
 @pytest.mark.django_db
-@pytest.mark.usefixtures("disconnect_user_signal")
 class TestNotificationModel:
     def test_notification_creation(self):
         user = User.objects.create_user(username="user0")
@@ -121,7 +101,6 @@ class TestNotificationModel:
 
 
 @pytest.mark.django_db
-@pytest.mark.usefixtures("disconnect_user_signal")
 class TestNotificationQuerySet:
     def test_unread(self, notifications):
         assert NotificationModel.objects.unread().count() == 4
@@ -161,7 +140,6 @@ class TestNotificationQuerySet:
 
 
 @pytest.mark.django_db
-@pytest.mark.usefixtures("disconnect_user_signal")
 class TestDatabaseOptimizations:
     def test_no_relation_optimization(
         self, notifications_100, django_assert_num_queries
@@ -169,19 +147,19 @@ class TestDatabaseOptimizations:
         with django_assert_num_queries(101):
             notifications = NotificationModel.objects.all()
             for notification in notifications:
-                print(notification.recipient.username)
+                var = notification.recipient.username  # noqa: F841
 
     def test_select_related(self, notifications_100, django_assert_num_queries):
         with django_assert_num_queries(1):
             notifications = NotificationModel.objects.select_related("recipient")
             for notification in notifications:
-                print(notification.recipient.username)
+                var = notification.recipient.username  # noqa: F841
 
     def test_prefetch_related(self, notifications_100, django_assert_num_queries):
         with django_assert_num_queries(2):
             notifications = NotificationModel.objects.prefetch_related("recipient")
             for notification in notifications:
-                print(notification.recipient.username)
+                var = notification.recipient.username  # noqa: F841
 
     def test_same_return_data(self, notifications_100):
         unoptimized = list(NotificationModel.objects.order_by("pk"))

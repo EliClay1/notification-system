@@ -5,8 +5,7 @@ from django.dispatch import receiver
 from notifications.services import create_notification
 
 
-@receiver(signal=post_save, sender=User, dispatch_uid="post-save-uid123")
+@receiver(signal=post_save, sender=User)
 def on_user_creation(sender, instance, created, **kwargs):
-
     if created and isinstance(instance, User):
         create_notification(instance, f"Welcome to your account, {instance.username}!")

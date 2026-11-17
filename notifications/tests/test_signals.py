@@ -8,6 +8,7 @@ from notifications.models import NotificationModel
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.keep_user_signal
 @pytest.mark.django_db
 class TestNotificationSignals:
     def test_user_creation_signal(self):

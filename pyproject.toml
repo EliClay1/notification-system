@@ -15,7 +15,8 @@ dependencies = [
     "pytest-django>=4.14.0",
 ]
 
-[tool.pytest.ini_options]
+[tool.pytest]
+markers = ["keep_user_signal"]
 log_cli_level = "INFO"
 log_cli_format = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 
