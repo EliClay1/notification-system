@@ -44,6 +44,7 @@ class TestCommitTransactions:
         user = User.objects.create(username="user0")
         with transaction.atomic():
             create_notification(recipient=user, message="test message 1")
+            mock_publish.assert_not_called()
 
         mock_publish.assert_called_once()
 
