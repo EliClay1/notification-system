@@ -27,6 +27,8 @@ class TestServices:
         notification2 = services.create_notification(
             user, "Welcome to your account, user0!", "2"
         )
+        assert isinstance(notification2, NotificationModel)
+
         retrieved_notification2 = NotificationModel.objects.get(pk=notification2.pk)
 
         assert retrieved_notification2.type == "2"

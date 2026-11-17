@@ -8,15 +8,15 @@ from notifications.models import NotificationModel
 logger = logging.getLogger(__name__)
 
 
-def create_notification(recipient: User, message: str, notification_type="1"):
+def create_notification(
+    recipient: User, message: str, notification_type="1"
+) -> NotificationModel:
 
     notification = NotificationModel.objects.create(
         recipient=recipient,
         message=message,
         type=notification_type,
     )
-    if notification is None:
-        return
 
     transaction.on_commit(lambda: publish_notification(notification))
     return notification
