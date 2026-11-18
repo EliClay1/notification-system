@@ -16,8 +16,18 @@ Including another URLconf
 """
 
 from django.contrib import admin
+from django.contrib.auth import views as auth_views
 from django.urls import path
+
+import notifications
+import notifications.views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/notifications/", notifications.views.authenticated_user_notifications),
+    path(
+        "login/",
+        auth_views.LoginView.as_view(template_name="registration/login.html"),
+        name="login",
+    ),
 ]

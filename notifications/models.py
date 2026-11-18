@@ -9,7 +9,7 @@ class NotificationQuerySet(models.QuerySet):
         """Returns any unread notifications"""
         return self.filter(is_read=False)
 
-    def for_user(self, user):
+    def for_user(self, user) -> NotificationQuerySet:
         """Returns all notifications for the user"""
         return self.filter(recipient=user)
 
