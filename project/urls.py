@@ -24,10 +24,14 @@ import notifications.views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/notifications/", notifications.views.authenticated_user_notifications),
     path(
         "login/",
         auth_views.LoginView.as_view(template_name="registration/login.html"),
         name="login",
+    ),
+    path("api/notifications/", notifications.views.authenticated_user_notifications),
+    path(
+        "api/notifications/<id>/read",
+        notifications.views.update_notification_read,
     ),
 ]
