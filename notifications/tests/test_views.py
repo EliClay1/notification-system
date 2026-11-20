@@ -126,3 +126,42 @@ class TestMiddleware(TestCase):
             response = middleware(request)
             self.assertEqual(response.status_code, 500)
             self.assertIn("Status: 500", logs.output[0])
+
+
+class TestAsyncViews(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user1 = User.objects.create(username="user1", password="password")
+        self.user2 = User.objects.create(username="user2", password="password")
+
+        self.notification1 = create_notification(recipient=self.user1, message="user1")
+        self.notification2 = create_notification(recipient=self.user2, message="user2")
+        self.notification2_2 = create_notification(
+            recipient=self.user2, message="user2, message 2"
+        )
+
+    def test_async_authenticated_user(self):
+        self.client.force_login(self.user1)
+        response = self.client.get("/api/notifications/unread/count")
+        self.assertEqual(response.status_code, 200)
+        # by default assumes that the count is only getting for user1.
+        self.assertContains(response, '{"success": true, "count": 1}')
+
+    def test_async_all_notifications_read(self):
+        self.client.force_login(self.user1)
+        self.client.post(f"/api/notifications/{self.notification1.pk}/read")
+        response = self.client.get("/api/notifications/unread/count")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '{"success": true, "count": 0}')
+
+    def test_unauth_noti_count(self):
+        response = self.client.post("/api/notifications/unread/count")
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(
+            response,
+            "/login/?next=/api/notifications/unread/count",
+            fetch_redirect_response=False,
+        )
+
+        login_response = self.client.get("/login/")
+        self.assertTemplateUsed(login_response, "registration/login.html")

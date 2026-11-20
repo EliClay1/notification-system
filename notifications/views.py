@@ -1,3 +1,4 @@
+from asgiref.sync import sync_to_async
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse, HttpResponseNotFound, JsonResponse
 from django.views.decorators.http import require_POST
@@ -53,3 +54,10 @@ def mark_notification_read(request: HttpRequest, id: int) -> HttpResponse:
     return JsonResponse(
         {"success": True, "notification": serialized_notification(notification)}
     )
+
+
+@sync_to_async
+@login_required
+def get_unread_notifications(request: HttpRequest) -> HttpResponse:
+    count = NotificationModel.objects.for_user(request.user).unread().count()
+    return JsonResponse({"success": True, "count": count})
