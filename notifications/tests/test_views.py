@@ -155,7 +155,7 @@ class TestAsyncViews(TestCase):
         self.assertContains(response, '{"success": true, "count": 0}')
 
     def test_unauth_noti_count(self):
-        response = self.client.post("/api/notifications/unread/count")
+        response = self.client.get("/api/notifications/unread/count")
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(
             response,
