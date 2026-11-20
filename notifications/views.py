@@ -35,7 +35,7 @@ def authenticated_user_notifications(request: HttpRequest) -> JsonResponse:
 
 @require_POST
 @login_required
-def update_notification_read(request: HttpRequest, id: int) -> HttpResponse:
+def mark_notification_read(request: HttpRequest, id: int) -> HttpResponse:
     notification = (
         NotificationModel.objects.for_user(request.user).filter(pk=id).first()
     )
@@ -47,7 +47,7 @@ def update_notification_read(request: HttpRequest, id: int) -> HttpResponse:
 
     assert isinstance(notification, NotificationModel)
 
-    notification.is_read = not notification.is_read
+    notification.is_read = True
     notification.save(update_fields=["is_read"])
 
     return JsonResponse(

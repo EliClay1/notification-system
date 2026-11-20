@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 @pytest.mark.django_db
-class TestViews(TestCase):
+class TestGetNotifications(TestCase):
     def setUp(self):
         self.client = Client()
         self.user1 = User.objects.create(username="user1", password="password")
@@ -42,3 +42,44 @@ class TestViews(TestCase):
 
         login_response = self.client.get("/login/")
         self.assertTemplateUsed(login_response, "registration/login.html")
+
+
+@pytest.mark.django_db
+class TestReadNotifications(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user1 = User.objects.create(username="user1", password="password")
+        self.user2 = User.objects.create(username="user2", password="password")
+        self.notification1 = create_notification(recipient=self.user1, message="user1")
+        self.notification2 = create_notification(recipient=self.user2, message="user2")
+
+    def test_read_own_notification(self):
+        self.client.force_login(self.user1)
+        response = self.client.post(f"/api/notifications/{self.notification1.pk}/read")
+        self.assertEqual(response.status_code, 200)
+        self.notification1.refresh_from_db()
+        self.assertTrue(self.notification1.is_read)
+
+    def test_read_others_notification(self):
+        self.client.force_login(self.user1)
+        response = self.client.post(f"/api/notifications/{self.notification2.pk}/read")
+        self.assertEqual(response.status_code, 404)
+        self.notification2.refresh_from_db()
+        self.assertFalse(self.notification2.is_read)
+
+    def test_unauth_read_notification(self):
+        response = self.client.post(f"/api/notifications/{self.notification1.pk}/read")
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(
+            response,
+            f"/login/?next=/api/notifications/{self.notification1.pk}/read",
+            fetch_redirect_response=False,
+        )
+
+        login_response = self.client.get("/login/")
+        self.assertTemplateUsed(login_response, "registration/login.html")
+
+    def test_get_read_notification(self):
+        self.client.force_login(self.user1)
+        response = self.client.get(f"/api/notifications/{self.notification1.pk}/read")
+        self.assertEqual(response.status_code, 405)
