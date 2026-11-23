@@ -9,8 +9,17 @@ https://docs.djangoproject.com/en/5.2/howto/deployment/asgi/
 
 import os
 
+from channels.auth import AuthMiddleware
+from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings')
+from notifications.routing import websocket_urlpatterns
 
-application = get_asgi_application()
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "project.settings")
+
+application = ProtocolTypeRouter(
+    {
+        "websocket": AuthMiddleware(URLRouter(websocket_urlpatterns)),
+        "http": get_asgi_application(),
+    }
+)

@@ -7,12 +7,14 @@ authors = [{ name = "Eliclay1", email = "eliclay1@byu.edu" }]
 requires-python = ">=3.15"
 dependencies = [
     "channels>=4.3.2",
+    "daphne>=4.2.3",
     "django>=6.1.3",
     "django-environ>=0.14.0",
     "freezegun>=1.5.5",
     "invoke>=3.0.3",
     "psycopg[binary]>=3.3.9",
     "pytest>=9.2.0",
+    "pytest-asyncio>=1.5.0",
     "pytest-django>=4.14.0",
     "pytest-mock>=3.17.0",
 ]
@@ -21,6 +23,7 @@ dependencies = [
 markers = ["keep_user_signal", "disable_user_signal"]
 log_cli_level = "INFO"
 log_cli_format = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+asyncio_default_fixture_loop_scope = "fixture-scope"
 
 DJANGO_SETTINGS_MODULE = "project.settings"
 python_files = ["test_*.py"]
